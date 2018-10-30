@@ -9,6 +9,7 @@ import numpy as np
 import operator as op
 import matplotlib
 import matplotlib.pyplot as plt
+from os import listdir
 
 def createDataSet():
     group=np.array([[1.0,1.1],[1.0,1.0],[0,0],[0,0.1]])
@@ -96,6 +97,45 @@ def classifyPerson():
     classifierResult=classify0((inArr-minVals)/ranges,normMat,datingLabels,3)
     print("you will probably like this person:",resultList[classifierResult-1])
 
+'''
+测试数据为32×32的二进制图像矩阵，函数将其转换为1×1024的向量
+'''
 
+def im2vector(filename):
+    returnVect=np.zeros((1,1024))
+    fr=open(filename)
+    for i in range(32):
+        lineStr=fr.readline()
+        for j in range(32):
+            returnVect[0,32*i+j]=int(lineStr[j])
+    return returnVect
+
+def handwritingClassTest():
+    hwLabels=[]
+    trainingFileList=listdir('digits/trainingDigits')
+    m=len(trainingFileList)
+    trainingMat=((m,1024))
+    for i in range(m):
+        fileNameStr=trainingFileList[i]
+        fileStr=fileNameStr.split('.')[0]
+        classNumStr=int(fileStr.split('_')[0])
+        hwLabels.append(classNumStr)
+        trainingMat[i,:]=im2vector('digits/trainingDigits/%s'%fileNameStr)
+    testFileList=listdir('digits/testDigits')
+    errorCount=0.0
+    mTest=len(testFileList)
+    for i in range(mTest):
+        fileNameStr=testFileList[i]
+        fileStr=fileNameStr.split('.')[0]
+        classNumStr=int(fileStr.split('_')[0])
+        vectorUnderTest=im2vector('digits/testDigits/%s'%fileNameStr)
+        classifierResult=classify0(vectorUnderTest,trainingMat,hwLabels,3)
+        print("the classifier came back with:%d,the real answer is:%d"%(classifierResult,classNumStr))
+        if(classifierResult!=classNumStr):
+            errorCount+=1
+    print(errorCount/float(mTest))
+    
+    
+    
 
 
