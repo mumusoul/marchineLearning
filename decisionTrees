@@ -7,11 +7,12 @@ Created on Wed Oct 31 17:16:22 2018
 
 from math import log
 import numpy as np
+import operator
 
 #创建简单测试数据
 def createDataSet():
-    dataSet=np.array([[1,1,'yes'],[1,1,'yes'],[1,0,'no'],[0,1,'no'],[0,1,'no']])
-    labels=np.array(['nosurfacing','flippers'])
+    dataSet=[[1,1,'yes'],[1,1,'yes'],[1,0,'no'],[0,1,'no'],[0,1,'no']]
+    labels=['nosurfacing','flippers']
     return dataSet,labels
 
 #计算给定数据集的香农熵    
@@ -33,12 +34,61 @@ def calcShannonEnt(dataSet):
 def splitDataSet(dataSet,axis,value):   #传入参数分别为待划分的数据集，划分特征，返回的特征值
     retDataSet=[]
     for featVec in dataSet:
-        if featVec[axis]==value:
+        if featVec[axis]==value:        #抽取
             reduceFeatVec=featVec[:axis]
             reduceFeatVec.extend(featVec[axis+1:])
             retDataSet.append(reduceFeatVec)
     return retDataSet
             
+#遍历整个数据集，循环计算熵和splitDataSet()函数，找到最好的划分方式
+#调用的数据要求：1.数据是由列表元素组成的列表，且所有列表元素要有相同的数据长度
+#              2.数据的最后一列须是当前实例的类别标签
+def chooseBestFeatureToSplit(dataSet):
+    numFeatures=len(dataSet[0])-1       #判别多少种特征属性
+    baseEntropy=calcShannonEnt(dataSet)
+    bestInfoGain=0.0
+    bestFeature=-1
+    for i in range(numFeatures):
+        featList=[example[i] for example in dataSet]    #创建特征集合，可以最快得到列表中的唯一元素值
+        uniqueVals=set(featList)
+        newEntropy=0.0
+        for value in uniqueVals:                #计算每种划分方式的信息熵
+            subDataSet=splitDataSet(dataSet,i,value)
+            prob=len(subDataSet)/float(len(dataSet))
+            newEntropy+=prob*calcShannonEnt(subDataSet)
+        infoGain=baseEntropy-newEntropy
+        if(infoGain>bestInfoGain):
+            bestInfoGain=infoGain       #选取最好的信息增益
+            bestFeature=i
+    return bestFeature
+
+#挑选出现次数最多的特征
+def majorrityCnt(classList):
+    classCount={}
+    for vote in classList:
+        if vote not in classCount.keys():
+            classCount[vote]=0
+        classCount[vote]+=1     #classList中每一个类标签出现的频率
+        sortedClassCount=sorted(classCount.items(),key=operator.itemgetter(1),reverse=True)
+        return sortedClassCount[0][0]       #返回出现次数最多的类的名称
+        
+#创建树
+def createTree(dataSet,labels):
+    classList=[example[-1] for example in dataSet]
+    if classList.count(classList[0])==len(classList):       #类别完全相同时停止划分
+        return classList[0]
+    if len(dataSet[0])==1:          #遍历完所有特征时返回出现次数最多的类别
+        return majorrityCnt(classList)
+    bestFeat=chooseBestFeatureToSplit(dataSet)
+    bestFeatLabel=labels[bestFeat]
+    myTree={bestFeatLabel:{}}
+    del(labels[bestFeat])
+    featValues=[example[bestFeat] for example in dataSet]
+    uniqueVals=set(featValues)
+    for value in uniqueVals:
+        subLabels=labels[:]
+        myTree[bestFeatLabel][value]=createTree(splitDataSet(dataSet,bestFeat,value),subLabels)
+    return myTree
 
 
 
